@@ -1,7 +1,7 @@
+import asyncio
 import heapq
 import math
 import random
-import sys
 import pygame
 
 COLS = 19
@@ -27,13 +27,11 @@ BG_DARK = (14, 15, 22)
 FLOOR_COL = (28, 30, 42)
 FLOOR_ALT = (33, 36, 50)
 WALL_COL = (72, 78, 104)
-WALL_HIGHLIGHT = (102, 110, 145)
 PANEL_BG = (19, 21, 30)
 PANEL_BORDER = (52, 57, 78)
 TEXT_MAIN = (232, 236, 245)
 TEXT_DIM = (148, 156, 180)
 AMBER = (255, 198, 72)
-AMBER_SOFT = (255, 155, 48)
 CRIMSON = (235, 64, 84)
 CYAN = (76, 214, 235)
 EMERALD = (68, 224, 148)
@@ -517,6 +515,7 @@ class Game:
         self.slider_rects = {}
         self.start_btn_rect = pygame.Rect(WIDTH // 2 - 120, HEIGHT - 110, 240, 52)
 
+        self.running = True
         self.mode = "MENU"
         self.debug_mode = True
         self.elapsed = 0.0
@@ -613,13 +612,16 @@ class Game:
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                self.running = False
+                return
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
+                    if self.mode != "MENU":
+                        self.mode = "MENU"
+                    else:
+                        self.running = False
+                        return
 
                 if self.mode == "MENU":
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE):
@@ -1077,7 +1079,7 @@ class Game:
         summary = [
             f"Final Score: {self.player.score}   |   Lanterns: {self.player.lanterns_collected}/{self.total_lanterns}",
             f"Time Survived: {self.elapsed:.1f}s   |   Boss Markov Accuracy: {self.markov.accuracy():.1f}%",
-            "Press R to Regenerate & Play Again   |   M for Probability Menu   |   ESC to Quit",
+            "Press R to Regenerate & Play Again   |   M for Probability Menu   |   ESC for Menu",
         ]
         y = HEIGHT // 2 - 20
         for line in summary:
@@ -1100,8 +1102,8 @@ class Game:
             pygame.draw.rect(self.screen, AMBER, box, 1, border_radius=6)
             self.screen.blit(msg, (box.x + 14, box.y + 6))
 
-    def run(self):
-        while True:
+    async def run(self):
+        while self.running:
             dt = min(0.05, self.clock.tick(FPS) / 1000.0)
             self.handle_events()
 
@@ -1115,7 +1117,10 @@ class Game:
                 self.draw_end_overlay()
 
             pygame.display.flip()
+            await asyncio.sleep(0)
+
+        pygame.quit()
 
 
 if __name__ == "__main__":
-    Game().run()
+    asyncio.run(Game().run())
